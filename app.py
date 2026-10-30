@@ -1,11 +1,4 @@
-"""
-Kant PG — Full Admin CMS · Every text editable
-Run:  python app.py
-Login: admin / kant@123
-"""
-
-from dotenv import load_dotenv
-load_dotenv()
+import os
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,14 +6,35 @@ from datetime import datetime
 from functools import wraps
 
 # ============================================================
-# APP CONFIG
+# APP CONFIG  <-- THIS IS WHERE THE NEW CODE GOES
 # ============================================================
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'kant-pg-secret-key-change-in-production'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kant_pg.db'
+
+# 1. Load the Secret Key
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-dev-key')
+
+# 2. Read the Neon Database URL from Vercel
+database_url = os.environ.get('DATABASE_URL')
+
+# 3. Fix the postgres:// prefix (SQLAlchemy requires postgresql://)
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+# 4. Set the URI. DO NOT fallback to sqlite here, or Vercel will crash.
+if database_url:
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+else:
+    # This is only for local testing. It will be ignored on Vercel.
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local_dev.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+# ============================================================
+# MODELS
+# ============================================================
+# ... (the rest of your file continues unchanged) ...
 
 # ============================================================
 # MODELS
