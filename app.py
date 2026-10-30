@@ -6,25 +6,38 @@ from datetime import datetime
 from functools import wraps
 
 # ============================================================
-# APP CONFIG  <-- THIS IS WHERE THE NEW CODE GOES
+# APP CONFIG
 # ============================================================
 app = Flask(__name__)
 
 # 1. Load the Secret Key
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-dev-key')
 
-# 2. Read the Neon Database URL from Vercel
+# 2. Read DATABASE_URL and force psycopg2 driver
 database_url = os.environ.get('DATABASE_URL')
 
-# 3. Fix the postgres:// prefix (SQLAlchemy requires postgresql://)
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
-
-# 4. Set the URI. DO NOT fallback to sqlite here, or Vercel will crash.
 if database_url:
+    # First unify postgres:// to postgresql://
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    
+    # Key step: force the use of the psycopg2 driver
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
-    # This is only for local testing. It will be ignored on Vercel.
+    # Fallback for local testing only
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local_dev.db'
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+# ============================================================
+# MODELS
+# ============================================================
+# ... (your models continue below) ...
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local_dev.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
