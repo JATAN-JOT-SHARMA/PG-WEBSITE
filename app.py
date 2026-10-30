@@ -63,7 +63,6 @@ class Room(db.Model):
     name = db.Column(db.String(120), nullable=False)
     sharing = db.Column(db.String(80), nullable=False)
     # ... (the rest of your models continue normally) ...
-# ============================================================
 # MODELS
 
 class Room(db.Model):
@@ -2155,3 +2154,4 @@ if __name__ == '__main__':
     print("  Login:   admin / kant@123")
     print("=" * 60)
     app.run(debug=True)
+
