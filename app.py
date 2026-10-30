@@ -58,12 +58,6 @@ db = SQLAlchemy(app)
 # ============================================================
 # MODELS
 # ============================================================
-class Room(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    sharing = db.Column(db.String(80), nullable=False)
-    # ... (the rest of your models continue normally) ...
-# MODELS
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
