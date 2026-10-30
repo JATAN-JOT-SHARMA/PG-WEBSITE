@@ -13,45 +13,59 @@ app = Flask(__name__)
 # 1. Load the Secret Key
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-dev-key')
 
-# 2. Read DATABASE_URL and force psycopg2 driver
-database_url = os.environ.get('DATABASE_URL')
+# 2. Read DATABASE_URL and force psycopg2 driver safely
+database_url = os.environ.get('DATABASE_URL', '')
 
 if database_url:
-    # First unify postgres:// to postgresql://
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
-    
-    # Key step: force the use of the psycopg2 driver
     if database_url.startswith("postgresql://"):
         database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
-
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
-    # Fallback for local testing only
+    import os
+from flask import Flask, render_template_string, request, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+from functools import wraps
+
+# ============================================================
+# APP CONFIG
+# ============================================================
+app = Flask(__name__)
+
+# 1. Load the Secret Key
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-dev-key')
+
+# 2. Read DATABASE_URL and force psycopg2 driver safely
+database_url = os.environ.get('DATABASE_URL', '')
+
+if database_url:
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local_dev.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Initialize DB
 db = SQLAlchemy(app)
 
 # ============================================================
 # MODELS
 # ============================================================
-# ... (your models continue below) ...
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local_dev.db'
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
+class Room(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    sharing = db.Column(db.String(80), nullable=False)
+    # ... (the rest of your models continue normally) ...
 # ============================================================
 # MODELS
-# ============================================================
-# ... (the rest of your file continues unchanged) ...
 
-# ============================================================
-# MODELS
-# ============================================================
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
@@ -2100,13 +2114,15 @@ def seed_database():
 
     db.session.commit()
 
-
-# ============================================================
 # MAIN
 # ============================================================
+
+# 1. Run this ALWAYS (so Vercel creates the tables in Neon)
+with app.app_context():
+    seed_database()
+
+# 2. Run this ONLY when testing locally on your PC
 if __name__ == '__main__':
-    with app.app_context():
-        seed_database()
     print("=" * 60)
     print("  Kant PG · Full CMS · Every text editable")
     print("=" * 60)
