@@ -2128,6 +2128,25 @@ if __name__ == '__main__':
 
 # 2. This is ONLY for running locally on your PC
 if __name__ == '__main__':
+   # ... (Your routes and admin code above this) ...
+
+# ============================================================
+# SEED DATABASE
+# ============================================================
+def seed_database():
+    # ... (this function is already in your file) ...
+    db.session.commit()
+
+# ============================================================
+# MAIN  <--- PASTE IT RIGHT HERE AT THE VERY BOTTOM
+# ============================================================
+
+# 1. THIS MUST BE OUTSIDE THE IF BLOCK
+with app.app_context():
+    seed_database()
+
+# 2. This is ONLY for local testing
+if __name__ == '__main__':
     print("=" * 60)
     print("  Kant PG · Full CMS · Every text editable")
     print("=" * 60)
