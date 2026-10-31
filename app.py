@@ -24,31 +24,6 @@ if database_url:
         database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
-    import os
-from flask import Flask, render_template_string, request, redirect, url_for, flash, session
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
-from functools import wraps
-
-# ============================================================
-# APP CONFIG
-# ============================================================
-app = Flask(__name__)
-
-# 1. Load the Secret Key
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-dev-key')
-
-# 2. Read DATABASE_URL and force psycopg2 driver safely
-database_url = os.environ.get('DATABASE_URL', '')
-
-if database_url:
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-    if database_url.startswith("postgresql://"):
-        database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local_dev.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -59,10 +34,6 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 # Initialize DB
 db = SQLAlchemy(app)
-
-# ============================================================
-# MODELS
-# ============================================================
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
