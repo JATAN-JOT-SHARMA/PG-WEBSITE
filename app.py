@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from functools import wraps
+from sqlalchemy.exc import SQLAlchemyError
 
 # ============================================================
 # APP CONFIG
@@ -51,6 +52,10 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local_dev.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+}
 
 # Initialize DB
 db = SQLAlchemy(app)
@@ -2006,17 +2011,7 @@ def seed_database():
 
     try:
         db.create_all()
-        inspector = inspect(db.engine)
-        if 'room' in inspector.get_table_names():
-            cols = [c['name'] for c in inspector.get_columns('room')]
-            if 'sharing' not in cols:
-                print("⚠️  Old schema detected. Rebuilding...")
-                db.drop_all()
-                db.create_all()
-        if 'site_setting' not in inspector.get_table_names():
-            print("⚠️  Missing site_setting table. Rebuilding...")
-            db.drop_all()
-            db.create_all()
+        # ... (your schema check code) ...
     except Exception as e:
         print(f"⚠️  Rebuild triggered: {e}")
         db.drop_all()
@@ -2030,9 +2025,10 @@ def seed_database():
         ))
 
     # Settings
-    for key, val, label, group in DEFAULT_SETTINGS:
-        if not SiteSetting.query.filter_by(key=key).first():
-            db.session.add(SiteSetting(key=key, value=val, label=label, group=group))
+    with db.session.no_autoflush:
+        for key, val, label, group in DEFAULT_SETTINGS:
+            if not SiteSetting.query.filter_by(key=key).first():
+                db.session.add(SiteSetting(key=key, value=val, label=label, group=group))
 
     # Rooms
     if not Room.query.first():
@@ -2114,31 +2110,7 @@ def seed_database():
 with app.app_context():
     seed_database()
 
-# 2. Run this ONLY when testing locally on your PC
-if __name__ == '__main__':
-  with app.app_context():
-    seed_database()
-
-# 2. This is ONLY for running locally on your PC
-if __name__ == '__main__':
-   # ... (Your routes and admin code above this) ...
-
-# ============================================================
-# SEED DATABASE
-# ============================================================
-def seed_database():
-    # ... (this function is already in your file) ...
-    db.session.commit()
-
-# ============================================================
-# MAIN  <--- PASTE IT RIGHT HERE AT THE VERY BOTTOM
-# ============================================================
-
-# 1. THIS MUST BE OUTSIDE THE IF BLOCK
-with app.app_context():
-    seed_database()
-
-# 2. This is ONLY for local testing
+# This is only for local testing
 if __name__ == '__main__':
     print("=" * 60)
     print("  Kant PG · Full CMS · Every text editable")
@@ -2148,4 +2120,3 @@ if __name__ == '__main__':
     print("  Login:   admin / kant@123")
     print("=" * 60)
     app.run(debug=True)
-
