@@ -11,10 +11,8 @@ from sqlalchemy.exc import SQLAlchemyError
 # ============================================================
 app = Flask(__name__)
 
-# 1. Load the Secret Key
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-dev-key')
 
-# 2. Read DATABASE_URL and force psycopg2 driver safely
 database_url = os.environ.get('DATABASE_URL', '')
 
 if database_url:
@@ -32,7 +30,6 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_recycle': 300,
 }
 
-# Initialize DB
 db = SQLAlchemy(app)
 
 class Room(db.Model):
@@ -1992,7 +1989,7 @@ def seed_database():
     if not Admin.query.first():
         db.session.add(Admin(
             username='admin',
-            password_hash=generate_password_hash('kant@123')
+            password_hash=generate_password_hash('Kant@123')
         ))
 
     # Settings
@@ -2080,14 +2077,101 @@ def seed_database():
 # 1. Run this ALWAYS (so Vercel creates the tables in Neon)
 with app.app_context():
     seed_database()
+  # ============================================================
+# SEED DATABASE
+# ============================================================
+def seed_database():
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"⚠️  Rebuild triggered: {e}")
+        db.drop_all()
+        db.create_all()
+
+    # Admin
+    if not Admin.query.first():
+        db.session.add(Admin(
+            username='admin',
+            password_hash=generate_password_hash('kant@123')
+        ))
+
+    # Settings
+    with db.session.no_autoflush:
+        for key, val, label, group in DEFAULT_SETTINGS:
+            if not SiteSetting.query.filter_by(key=key).first():
+                db.session.add(SiteSetting(key=key, value=val, label=label, group=group))
+
+    # Rooms
+    if not Room.query.first():
+        rooms_data = [
+            {'name': 'Deluxe Single Room', 'sharing': 'Single', 'floor': '2nd Floor · AC', 'price': 9500,
+             'duration': '3 months', 'beds': 8,
+             'description': 'Private AC room with attached bathroom, study table, wardrobe, and balcony access.',
+             'icon': 'fa-user'},
+            {'name': 'Comfort Double Sharing', 'sharing': 'Double', 'floor': '1st Floor · AC', 'price': 6800,
+             'duration': '3 months', 'beds': 12,
+             'description': 'Spacious twin-sharing room with individual wardrobes and attached bath.',
+             'icon': 'fa-user-friends'},
+            {'name': 'Smart Triple Sharing', 'sharing': 'Triple', 'floor': 'Ground Floor · Non-AC', 'price': 5200,
+             'duration': '3 months', 'beds': 9,
+             'description': 'Budget-friendly triple sharing with personal lockers and study area.',
+             'icon': 'fa-users'},
+            {'name': 'Premium Single Suite', 'sharing': 'Premium Single', 'floor': '3rd Floor · AC', 'price': 12500,
+             'duration': '6 months', 'beds': 4,
+             'description': 'Extra-large premium single room with attached bath and garden view.',
+             'icon': 'fa-crown'},
+        ]
+        for r in rooms_data:
+            db.session.add(Room(available_beds=r['beds'], is_active=True, **r))
+
+    # Staff
+    if not Staff.query.first():
+        staff_data = [
+            {'name': 'Mr. Rajesh Kant', 'role': 'Founder & Manager', 'qualification': 'MBA', 'experience': '12 years',
+             'bio': 'Founder of Kant PG. Oversees operations with a focus on resident comfort.',
+             'icon': 'fa-user-tie'},
+            {'name': 'Mrs. Anjali Verma', 'role': 'Head Warden', 'qualification': 'B.A.', 'experience': '8 years',
+             'bio': 'Resident warden known for her warmth and vigilance.',
+             'icon': 'fa-user-shield'},
+        ]
+        for s in staff_data:
+            db.session.add(Staff(is_active=True, **s))
+
+    # Features
+    if not Feature.query.first():
+        features_data = [
+            {'icon': 'fa-utensils', 'title': 'Home-Style Meals', 'description': 'Freshly cooked breakfast and dinner daily.', 'sort_order': 1},
+            {'icon': 'fa-wifi', 'title': 'High-Speed WiFi', 'description': 'Uninterrupted fibre internet throughout the building.', 'sort_order': 2},
+            {'icon': 'fa-shield-alt', 'title': '24/7 Security', 'description': 'CCTV surveillance and on-site warden.', 'sort_order': 3},
+        ]
+        for f in features_data:
+            db.session.add(Feature(**f))
+
+    # Testimonials
+    if not Testimonial.query.first():
+        testi_data = [
+            {'name': 'Priya Sharma', 'role': 'Resident · 2 years', 'avatar': 'PS', 'stars': 5,
+             'content': 'I moved here for my first job and Kant PG felt like home within a week.', 'sort_order': 1},
+            {'name': 'Arjun Kapoor', 'role': 'Resident · 1 year', 'avatar': 'AK', 'stars': 5,
+             'content': 'Clean rooms, reliable WiFi, and unbeatable location.', 'sort_order': 2},
+        ]
+        for t in testi_data:
+            db.session.add(Testimonial(**t))
+
+    db.session.commit()
+
+# ============================================================
+# MAIN
+# ============================================================
+
+# 1. Run this ALWAYS (so Vercel creates the tables in Neon)
+with app.app_context():
+    seed_database()
 
 # This is only for local testing
 if __name__ == '__main__':
     print("=" * 60)
-    print("  Kant PG · Full CMS · Every text editable")
-    print("=" * 60)
-    print("  URL:     http://127.0.0.1:5000")
-    print("  Admin:   http://127.0.0.1:5000/login")
-    print("  Login:   admin / kant@123")
+    print("  Kant PG · http://127.0.0.1:5000")
+    print("  Login: admin / kant@123")
     print("=" * 60)
     app.run(debug=True)
