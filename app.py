@@ -82,6 +82,10 @@ class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    # NEW: required for password reset
+    email = db.Column(db.String(120), unique=True, nullable=True)
+    reset_token = db.Column(db.String(200), nullable=True)
+    reset_token_expires = db.Column(db.DateTime, nullable=True)
 
 
 class SiteSetting(db.Model):
